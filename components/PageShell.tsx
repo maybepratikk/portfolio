@@ -22,16 +22,17 @@ const alignmentClasses = {
 };
 
 const RAIL_PREP_MS = 500;
+const SOFT_START_MS = 260;
 const SELECT_MS = 1100;
 const CURSOR_TO_CENTER_MS = 500;
 const CENTER_HOLD_MS = 420;
 const PRE_MOVE_HOLD_MS = 260;
 const MOVE_MS = 1400;
 const SETTLE_MS = 400;
-const MOVE_EASING = "cubic-bezier(0.16, 1, 0.3, 1)";
 const LINEAR_EASING = "linear";
 const DIRECTION_THRESHOLD_PX = 2;
 const FRAME_CONTENT_PADDING_PX = 14;
+const FRAME_VIEWPORT_INSET_PX = 48;
 
 type RectSnapshot = {
   top: number;
@@ -45,6 +46,7 @@ type OverlayState = {
   to: RectSnapshot;
   cursorVisible: boolean;
   opacity: number;
+  enterProgress: number;
   selectProgress: number;
   centerProgress: number;
   moveProgress: number;
@@ -65,9 +67,9 @@ function snapshotRect(rect: DOMRect): RectSnapshot {
   };
 }
 
-function captureRectInViewport(rect: RectSnapshot, viewportHeight: number) {
-  const topClip = Math.max(0, -rect.top);
-  const bottomClip = Math.max(0, rect.top + rect.height - viewportHeight);
+function captureRectInViewport(rect: RectSnapshot, viewportHeight: number, viewportInsetPx: number) {
+  const topClip = Math.max(0, viewportInsetPx - rect.top);
+  const bottomClip = Math.max(0, rect.top + rect.height - (viewportHeight - viewportInsetPx));
   const visibleHeight = Math.max(0, rect.height - topClip - bottomClip);
 
   return {
@@ -187,8 +189,8 @@ export default function PageShell({ children, mode = "default" }: PageShellProps
         : previousRectRef.current ?? targetRawRect;
 
     const viewportHeight = window.innerHeight;
-    const fromViewport = captureRectInViewport(fromRawRect, viewportHeight);
-    const targetViewport = captureRectInViewport(targetRawRect, viewportHeight);
+    const fromViewport = captureRectInViewport(fromRawRect, viewportHeight, FRAME_VIEWPORT_INSET_PX);
+    const targetViewport = captureRectInViewport(targetRawRect, viewportHeight, FRAME_VIEWPORT_INSET_PX);
     const fromRect = fromViewport.rect;
     const targetRect = targetViewport.rect;
 
@@ -201,6 +203,9 @@ export default function PageShell({ children, mode = "default" }: PageShellProps
       element.style.transform = "";
       element.style.clipPath = "";
       element.style.overflow = "";
+      element.style.background = "";
+      element.style.padding = "";
+      element.style.borderRadius = "";
       unlockPageScroll();
       setOverlay(null);
       isTransitioningRef.current = false;
@@ -216,19 +221,38 @@ export default function PageShell({ children, mode = "default" }: PageShellProps
     element.style.transform = `translate3d(${deltaX}px, ${deltaY}px, 0px)`;
     element.style.willChange = "transform";
     element.style.overflow = "hidden";
-    element.style.clipPath = `inset(${clipTop + FRAME_CONTENT_PADDING_PX}px ${FRAME_CONTENT_PADDING_PX}px ${clipBottom + FRAME_CONTENT_PADDING_PX}px ${FRAME_CONTENT_PADDING_PX}px)`;
+    element.style.clipPath = `inset(${clipTop}px 0px ${clipBottom}px 0px)`;
+    element.style.background = "var(--border)";
+    element.style.padding = `${FRAME_CONTENT_PADDING_PX}px`;
+    element.style.borderRadius = "4px";
 
     setOverlay({
       from: fromRect,
       to: targetRect,
       cursorVisible: true,
       opacity: 1,
+      enterProgress: 0,
       selectProgress: 0,
       centerProgress: 0,
       moveProgress: 0,
     });
 
     isTransitioningRef.current = true;
+
+    const startSoftStartTimeout = window.setTimeout(() => {
+      cancelProgressAnimationsRef.current.push(
+        runProgressAnimation(SOFT_START_MS, (value) => value, (progress) => {
+          setOverlay((currentOverlay) =>
+            currentOverlay
+              ? {
+                  ...currentOverlay,
+                  enterProgress: progress,
+                }
+              : currentOverlay,
+          );
+        }),
+      );
+    }, 0);
 
     const startSelectTimeout = window.setTimeout(() => {
       cancelProgressAnimationsRef.current.push(
@@ -261,11 +285,9 @@ export default function PageShell({ children, mode = "default" }: PageShellProps
     }, RAIL_PREP_MS + SELECT_MS);
 
     const startMoveTimeout = window.setTimeout(() => {
-      element.style.transition = `transform ${MOVE_MS}ms ${MOVE_EASING}`;
-      element.style.transform = "translate3d(0px, 0px, 0px)";
-
       cancelProgressAnimationsRef.current.push(
         runProgressAnimation(MOVE_MS, easeOut, (progress) => {
+          element.style.transform = `translate3d(${deltaX * (1 - progress)}px, ${deltaY * (1 - progress)}px, 0px)`;
           setOverlay((currentOverlay) =>
             currentOverlay
               ? {
@@ -296,6 +318,9 @@ export default function PageShell({ children, mode = "default" }: PageShellProps
       element.style.willChange = "";
       element.style.clipPath = "";
       element.style.overflow = "";
+      element.style.background = "";
+      element.style.padding = "";
+      element.style.borderRadius = "";
       unlockPageScroll();
       setOverlay(null);
       isTransitioningRef.current = false;
@@ -303,6 +328,7 @@ export default function PageShell({ children, mode = "default" }: PageShellProps
     }, RAIL_PREP_MS + SELECT_MS + CURSOR_TO_CENTER_MS + CENTER_HOLD_MS + PRE_MOVE_HOLD_MS + MOVE_MS + SETTLE_MS);
 
     animationTimeoutsRef.current.push(
+      startSoftStartTimeout,
       startSelectTimeout,
       startCenterTimeout,
       startMoveTimeout,
@@ -331,6 +357,9 @@ export default function PageShell({ children, mode = "default" }: PageShellProps
         currentElement.style.willChange = "";
         currentElement.style.clipPath = "";
         currentElement.style.overflow = "";
+        currentElement.style.background = "";
+        currentElement.style.padding = "";
+        currentElement.style.borderRadius = "";
       }
       unlockPageScroll();
     };
@@ -338,21 +367,25 @@ export default function PageShell({ children, mode = "default" }: PageShellProps
 
   const overlayFrameWidth = overlay ? overlay.from.width : 0;
   const overlayFrameHeight = overlay ? overlay.from.height : 0;
-  const frameX = overlay
+  const contentFrameX = overlay
     ? overlay.from.left + overlay.moveProgress * (overlay.to.left - overlay.from.left)
     : 0;
-  const frameY = overlay
+  const contentFrameY = overlay
     ? overlay.from.top + overlay.moveProgress * (overlay.to.top - overlay.from.top)
     : 0;
-  const frameDrawWidth = overlay ? overlayFrameWidth * overlay.selectProgress : 0;
-  const frameDrawHeight = overlay ? overlayFrameHeight * overlay.selectProgress : 0;
+  const frameX = contentFrameX - FRAME_CONTENT_PADDING_PX;
+  const frameY = contentFrameY - FRAME_CONTENT_PADDING_PX;
+  const paddedFrameWidth = overlayFrameWidth + FRAME_CONTENT_PADDING_PX * 2;
+  const paddedFrameHeight = overlayFrameHeight + FRAME_CONTENT_PADDING_PX * 2;
+  const frameDrawWidth = overlay ? paddedFrameWidth * overlay.selectProgress : 0;
+  const frameDrawHeight = overlay ? paddedFrameHeight * overlay.selectProgress : 0;
   const showAllHandles = Boolean(overlay && overlay.selectProgress > 0.85);
-  const drawEndX = frameX + overlayFrameWidth;
-  const drawEndY = frameY + overlayFrameHeight;
-  const frameCenterX = frameX + overlayFrameWidth / 2;
-  const frameCenterY = frameY + overlayFrameHeight / 2;
-  const drawCursorX = frameX + overlayFrameWidth * (overlay?.selectProgress ?? 0);
-  const drawCursorY = frameY + overlayFrameHeight * (overlay?.selectProgress ?? 0);
+  const drawEndX = frameX + paddedFrameWidth;
+  const drawEndY = frameY + paddedFrameHeight;
+  const frameCenterX = frameX + paddedFrameWidth / 2;
+  const frameCenterY = frameY + paddedFrameHeight / 2;
+  const drawCursorX = frameX + paddedFrameWidth * (overlay?.selectProgress ?? 0);
+  const drawCursorY = frameY + paddedFrameHeight * (overlay?.selectProgress ?? 0);
   const centerHopCursorX =
     drawEndX + (frameCenterX - drawEndX) * (overlay?.centerProgress ?? 0);
   const centerHopCursorY =
@@ -376,7 +409,10 @@ export default function PageShell({ children, mode = "default" }: PageShellProps
         ? "left"
         : "none";
   const showDirectionalGuides = movementDirection !== "none";
-  const sourceRight = overlay ? overlay.from.left + overlay.from.width : 0;
+  const destinationFrameX = overlay ? overlay.to.left - FRAME_CONTENT_PADDING_PX : 0;
+  const destinationFrameY = overlay ? overlay.to.top - FRAME_CONTENT_PADDING_PX : 0;
+  const destinationFrameWidth = overlay ? overlay.to.width + FRAME_CONTENT_PADDING_PX * 2 : 0;
+  const destinationFrameHeight = overlay ? overlay.to.height + FRAME_CONTENT_PADDING_PX * 2 : 0;
 
   return (
     <>
@@ -393,50 +429,21 @@ export default function PageShell({ children, mode = "default" }: PageShellProps
           aria-hidden="true"
           className="pointer-events-none fixed inset-0 z-[1200]"
           style={{
-            opacity: overlay.opacity,
+            opacity: overlay.opacity * overlay.enterProgress,
             transition: `opacity ${SETTLE_MS}ms ${LINEAR_EASING}`,
           }}
         >
           {showDirectionalGuides ? (
-            <>
-              <div
-                style={{
-                  position: "fixed",
-                  left: movementDirection === "right" ? sourceRight : 0,
-                  right: movementDirection === "right" ? 0 : "auto",
-                  width: movementDirection === "left" ? overlay.from.left : undefined,
-                  top: overlay.from.top,
-                  height: 2,
-                  background:
-                    "repeating-linear-gradient(90deg, var(--border-hover) 0px, var(--border-hover) 10px, transparent 10px, transparent 26px)",
-                  opacity: 0.48,
-                }}
-              />
-              <div
-                style={{
-                  position: "fixed",
-                  left: movementDirection === "right" ? sourceRight : 0,
-                  right: movementDirection === "right" ? 0 : "auto",
-                  width: movementDirection === "left" ? overlay.from.left : undefined,
-                  top: overlay.from.top + overlay.from.height,
-                  height: 2,
-                  background:
-                    "repeating-linear-gradient(90deg, var(--border-hover) 0px, var(--border-hover) 10px, transparent 10px, transparent 26px)",
-                  opacity: 0.48,
-                }}
-              />
-            </>
-          ) : null}
-          {showDirectionalGuides ? (
             <div
               style={{
                 position: "fixed",
-                left: overlay.to.left,
-                top: overlay.to.top,
-                width: overlay.to.width,
-                height: overlay.to.height,
-                border: "1px dashed var(--border-hover)",
-                opacity: 0.22,
+                left: destinationFrameX,
+                top: destinationFrameY,
+                width: destinationFrameWidth,
+                height: destinationFrameHeight,
+                border: "1.5px dashed var(--border-hover)",
+                opacity: 0.38,
+                background: "var(--surface)",
                 borderRadius: "4px",
               }}
             />
@@ -449,11 +456,8 @@ export default function PageShell({ children, mode = "default" }: PageShellProps
               top: frameY,
               width: frameDrawWidth,
               height: frameDrawHeight,
-              borderTop: "3px dashed var(--border-hover)",
-              borderRight: "3px solid var(--border-hover)",
-              borderBottom: "3px solid var(--border-hover)",
-              borderLeft: "3px solid var(--border-hover)",
-              boxShadow: "0 0 0 1px var(--border) inset",
+              border: "2px solid var(--border-hover)",
+              boxShadow: "0 0 0 1px var(--border)",
               borderRadius: "4px",
             }}
           />
