@@ -173,7 +173,14 @@ export default function PageShell({ children, mode = "default" }: PageShellProps
 
   useLayoutEffect(() => {
     const element = contentRef.current;
-    if (!element || layoutChangeId === 0) {
+    if (!element) {
+      return;
+    }
+
+    if (layoutChangeId === 0) {
+      // Keep the baseline in sync during initial hydration/layout restore so
+      // the first user-triggered toggle animates from the true current position.
+      previousRectRef.current = snapshotRect(element.getBoundingClientRect());
       return;
     }
 
@@ -562,7 +569,6 @@ export default function PageShell({ children, mode = "default" }: PageShellProps
                 width: 36,
                 height: 36,
                 overflow: "visible",
-                filter: "drop-shadow(0 6px 16px var(--text-tertiary))",
               }}
               viewBox="0 0 20 20"
             >

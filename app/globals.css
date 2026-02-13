@@ -64,6 +64,19 @@ body {
   transition: opacity 140ms ease-in-out;
 }
 
+html,
+body {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+html::-webkit-scrollbar,
+body::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+  display: none;
+}
+
 :root[data-theme-fade="out"] body {
   opacity: 0.72;
 }
