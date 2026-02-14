@@ -16,6 +16,7 @@ export const caseStudies: CaseStudy[] = [
         media: {
           kind: "image",
           src: "/case-studies/niakai/NiaKai 1.png",
+          alt: "niakai case study placeholder media",
         },
         body: [
           paragraph(
