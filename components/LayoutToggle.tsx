@@ -1,5 +1,6 @@
 "use client";
 
+import { usePathname } from "next/navigation";
 import { useLayout } from "./LayoutProvider";
 
 type LayoutAlignment = "left" | "center" | "right";
@@ -19,20 +20,35 @@ const bottomLineOffset: Record<LayoutAlignment, number> = {
 };
 
 export default function LayoutToggle() {
-  const { alignment, setAlignment } = useLayout();
+  const { alignment, setAlignment, caseStudyMediaSide, setCaseStudyMediaSide } = useLayout();
+  const pathname = usePathname();
+  const isCaseStudyPage = pathname.startsWith("/case-studies");
 
-  const currentIndex = alignmentOrder.indexOf(alignment as LayoutAlignment);
-  const nextAlignment = alignmentOrder[(currentIndex + 1) % alignmentOrder.length];
-  const middleOffset = middleLineOffset[alignment as LayoutAlignment];
-  const bottomOffset = bottomLineOffset[alignment as LayoutAlignment];
+  const toggleOrder: LayoutAlignment[] = isCaseStudyPage ? ["left", "right"] : alignmentOrder;
+
+  const visualAlignment: LayoutAlignment = isCaseStudyPage
+    ? (caseStudyMediaSide as LayoutAlignment)
+    : (alignment as LayoutAlignment);
+
+  const currentIndex = toggleOrder.indexOf(visualAlignment);
+  const resolvedIndex = currentIndex >= 0 ? currentIndex : 0;
+  const nextAlignment = toggleOrder[(resolvedIndex + 1) % toggleOrder.length];
+  const middleOffset = middleLineOffset[visualAlignment];
+  const bottomOffset = bottomLineOffset[visualAlignment];
 
   return (
     <button
       type="button"
-      onClick={() => setAlignment(nextAlignment)}
+      onClick={() => {
+        if (isCaseStudyPage) {
+          setCaseStudyMediaSide(nextAlignment as "left" | "right");
+          return;
+        }
+        setAlignment(nextAlignment);
+      }}
       aria-label={`switch layout to ${nextAlignment}`}
       className="inline-flex items-center justify-center text-[var(--text-tertiary)] hover:text-[var(--text)] transition-colors duration-200"
-      title={`layout: ${alignment} (click for ${nextAlignment})`}
+      title={`layout: ${visualAlignment} (click for ${nextAlignment})`}
     >
       <svg
         aria-hidden="true"

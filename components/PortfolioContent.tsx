@@ -72,7 +72,7 @@ export default function PortfolioContent() {
 
       <p className="portfolio-text text-[22px] font-normal leading-[1.6] tracking-[-0.01em] mb-5 text-[var(--text-secondary)] opacity-0 animate-fade-in-700">
         starting from{" "}
-        <span className="font-medium text-[var(--text)]">
+        <span className="text-highlight">
           $4578/m
         </span>
       </p>
@@ -84,16 +84,6 @@ export default function PortfolioContent() {
 
       <p className="portfolio-text text-[22px] font-normal leading-[1.6] tracking-[-0.01em] mb-5 text-[var(--text-secondary)] opacity-0 animate-fade-in-700">
         are you ready to take your product to the next level?
-      </p>
-
-      <p className="portfolio-text text-[22px] font-normal leading-[1.6] tracking-[-0.01em] mb-2 text-[var(--text-secondary)] opacity-0 animate-fade-in-700">
-        <a
-          href="#"
-          className="text-[var(--text)] font-medium no-underline hover:underline"
-        >
-          book a call
-        </a>{" "}
-        with me - i&apos;ll reach out to you.
       </p>
 
       <Footer />

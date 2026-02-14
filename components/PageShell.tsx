@@ -1,6 +1,7 @@
 "use client";
 
 import { ReactNode, useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { flushSync } from "react-dom";
 import { useLayout } from "./LayoutProvider";
 
 type PageShellMode = "default" | "experimental";
@@ -8,6 +9,7 @@ type PageShellMode = "default" | "experimental";
 type PageShellProps = {
   children: ReactNode;
   mode?: PageShellMode;
+  disableLayoutAnimation?: boolean;
 };
 
 const shellModeClasses: Record<PageShellMode, string> = {
@@ -21,14 +23,14 @@ const alignmentClasses = {
   right: "justify-end",
 };
 
-const RAIL_PREP_MS = 500;
-const SOFT_START_MS = 260;
-const SELECT_MS = 1100;
-const CURSOR_TO_CENTER_MS = 500;
-const CENTER_HOLD_MS = 420;
-const PRE_MOVE_HOLD_MS = 260;
-const MOVE_MS = 1400;
-const SETTLE_MS = 400;
+const RAIL_PREP_MS = 300;
+const SOFT_START_MS = 180;
+const SELECT_MS = 700;
+const CURSOR_TO_CENTER_MS = 320;
+const CENTER_HOLD_MS = 250;
+const PRE_MOVE_HOLD_MS = 160;
+const MOVE_MS = 900;
+const SETTLE_MS = 280;
 const LINEAR_EASING = "linear";
 const DIRECTION_THRESHOLD_PX = 2;
 const FRAME_CONTENT_PADDING_PX = 14;
@@ -110,7 +112,11 @@ function runProgressAnimation(
   };
 }
 
-export default function PageShell({ children, mode = "default" }: PageShellProps) {
+export default function PageShell({
+  children,
+  mode = "default",
+  disableLayoutAnimation = false,
+}: PageShellProps) {
   const { alignment, layoutChangeId } = useLayout();
   const justifyClass = alignmentClasses[alignment];
   const [overlay, setOverlay] = useState<OverlayState | null>(null);
@@ -174,6 +180,20 @@ export default function PageShell({ children, mode = "default" }: PageShellProps
   useLayoutEffect(() => {
     const element = contentRef.current;
     if (!element) {
+      return;
+    }
+
+    if (disableLayoutAnimation) {
+      element.style.transition = "";
+      element.style.transform = "";
+      element.style.willChange = "";
+      element.style.clipPath = "";
+      element.style.overflow = "";
+      element.style.zIndex = "";
+      unlockPageScroll();
+      setOverlay(null);
+      isTransitioningRef.current = false;
+      previousRectRef.current = snapshotRect(element.getBoundingClientRect());
       return;
     }
 
@@ -311,15 +331,19 @@ export default function PageShell({ children, mode = "default" }: PageShellProps
         runProgressAnimation(MOVE_MS, easeOut, (progress) => {
           const nextOffsetX = snapPx(deltaX * (1 - progress));
           const nextOffsetY = snapPx(deltaY * (1 - progress));
-          element.style.transform = `translate3d(${nextOffsetX}px, ${nextOffsetY}px, 0px)`;
-          setOverlay((currentOverlay) =>
-            currentOverlay
-              ? {
-                  ...currentOverlay,
-                  moveProgress: progress,
-                }
-              : currentOverlay,
-          );
+          // Flush both updates synchronously so the frame and content
+          // paint in the exact same browser frame — no 1-frame lag.
+          flushSync(() => {
+            element.style.transform = `translate3d(${nextOffsetX}px, ${nextOffsetY}px, 0px)`;
+            setOverlay((currentOverlay) =>
+              currentOverlay
+                ? {
+                    ...currentOverlay,
+                    moveProgress: progress,
+                  }
+                : currentOverlay,
+            );
+          });
         }),
       );
     }, RAIL_PREP_MS + SELECT_MS + CURSOR_TO_CENTER_MS + CENTER_HOLD_MS + PRE_MOVE_HOLD_MS);
@@ -357,7 +381,14 @@ export default function PageShell({ children, mode = "default" }: PageShellProps
       settleTimeout,
       cleanupTimeout,
     );
-  }, [alignment, layoutChangeId, lockPageScroll, prefersReducedMotion, unlockPageScroll]);
+  }, [
+    alignment,
+    disableLayoutAnimation,
+    layoutChangeId,
+    lockPageScroll,
+    prefersReducedMotion,
+    unlockPageScroll,
+  ]);
 
   useEffect(() => {
     const currentElement = contentRef.current;

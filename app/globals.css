@@ -57,12 +57,22 @@ body {
   margin: 0;
   background: var(--bg);
   color: var(--text);
+  text-transform: lowercase;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
   position: relative;
   opacity: 1;
   transition: opacity 140ms ease-in-out;
+}
+
+.text-highlight {
+  font-weight: 500;
+  color: var(--bg);
+  background: var(--text);
+  padding: 0 0.1em;
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
 }
 
 html,
