@@ -2,28 +2,44 @@ import CopyEmail from "./CopyEmail";
 
 export default function Footer() {
   return (
-    <div className="footer-section mt-12 text-xl font-normal leading-[1.7] tracking-[0.02em] text-[var(--text-secondary)] opacity-0 animate-fade-in-700">
-      if you&apos;re building something serious and need a design that stands out -
-      let&apos;s work
-      <br />
-      <br></br>
-      you can also reach out to me on{" "}
-      <a
-        href="#"
-        className="text-[var(--text)] font-medium no-underline hover:underline"
-      >
-        linkedin
-      </a>
-      ,{" "}
-      <a
-        href="#"
-        className="text-[var(--text)] font-medium no-underline hover:underline"
-      >
-        twitter
-      </a>{" "}
-      or{" "}
-      <CopyEmail email="your@email.com" />
-      <div className="mt-2 text-[var(--text-tertiary)] text-lg">last updated february 2026</div>
+    <div className="footer-section mt-2 text-[22px] font-normal leading-[1.6] tracking-[-0.01em] text-[var(--text-secondary)] text-justify opacity-0 animate-fade-in-700">
+      <p className="mb-2">or</p>
+      <p className="mb-5">
+        you can reach out to me via{" "}
+        <a
+          href="#"
+          className="text-[var(--text)] font-medium no-underline hover:underline"
+        >
+          twitter
+        </a>
+        ,{" "}
+        <a
+          href="#"
+          className="text-[var(--text)] font-medium no-underline hover:underline"
+        >
+          linkedin
+        </a>{" "}
+        or <CopyEmail email="your@email.com" />
+      </p>
+      <p className="mb-5">want to get started immediately?</p>
+      <p className="mb-5">
+        <a
+          href="#"
+          className="text-[var(--text)] font-medium no-underline hover:underline"
+        >
+          start
+        </a>{" "}
+        without the call and get{" "}
+        <span className="font-medium text-[var(--text)]">
+          10% off for the first month
+        </span>
+        .
+      </p>
+      <div className="mt-2 text-[var(--text-tertiary)] text-lg">
+        Last updated - 14th Feb, 2026
+        <br />
+        (i&apos;m single, so i worked on my portfolio)
+      </div>
     </div>
   );
 }

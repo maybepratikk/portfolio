@@ -1,13 +1,6 @@
 import type { Metadata } from "next";
-import { Inter_Tight } from "next/font/google";
 import { LayoutProvider } from "@/components/LayoutProvider";
 import "./globals.css";
-
-const interTight = Inter_Tight({
-  subsets: ["latin"],
-  weight: ["300", "400", "500", "600"],
-  variable: "--font-inter-tight",
-});
 
 export const metadata: Metadata = {
   title: "Pratik Singh",
@@ -29,7 +22,7 @@ export default function RootLayout({
           }}
         />
       </head>
-      <body className={`${interTight.variable} font-sans antialiased`}>
+      <body className="font-sans antialiased">
         <LayoutProvider>{children}</LayoutProvider>
       </body>
     </html>

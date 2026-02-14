@@ -3,6 +3,7 @@
 @tailwind utilities;
 
 :root {
+  --font-inter-tight: "Inter Tight", "Inter", "Segoe UI", "Helvetica Neue", Arial, sans-serif;
   --color-neutral-50: #fafafa;
   --color-neutral-100: #f5f5f5;
   --color-neutral-200: #e5e5e5;

@@ -29,11 +29,11 @@ export default async function CaseStudyPage({ params }: CaseStudyPageProps) {
       <HeaderNav />
 
       <section className="opacity-0 animate-fade-in-up">
-        <h1 className="text-[22px] font-medium tracking-[0.02em] text-[var(--text)] mb-4 opacity-0 animate-fade-in-300">
+        <h1 className="text-[22px] font-medium tracking-[-0.01em] text-[var(--text)] mb-4 opacity-0 animate-fade-in-300">
           {caseStudy.title}
         </h1>
 
-        <p className="portfolio-text text-[22px] font-normal leading-[1.7] tracking-[0.02em] mb-5 text-[var(--text-secondary)] opacity-0 animate-fade-in-400">
+        <p className="portfolio-text text-[22px] font-normal leading-[1.6] tracking-[-0.01em] mb-5 text-[var(--text-secondary)] opacity-0 animate-fade-in-400">
           {caseStudy.status}.
         </p>
       </section>
