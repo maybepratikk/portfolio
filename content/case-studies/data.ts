@@ -14,8 +14,8 @@ export const caseStudies: CaseStudy[] = [
       {
         id: "niakai-1",
         media: {
-          kind: "video",
-          src: "/case-studies/niakai/ChatArmin Table.mp4",
+          kind: "image",
+          src: "/case-studies/niakai/NiaKai 1.png",
         },
         body: [
           paragraph(
