@@ -22,7 +22,7 @@ export default function PortfolioContent() {
       <br />
 
       <p className="portfolio-text text-[22px] font-normal leading-[1.6] tracking-[-0.01em] mb-5 text-[var(--text-secondary)] opacity-0 animate-fade-in-300">
-        i&apos;m a freelance product designer.
+        i&apos;m a freelance product designer by day, curious builder by night.
       </p>
 
       <p className="portfolio-text text-[22px] font-normal leading-[1.6] tracking-[-0.01em] mb-5 text-[var(--text-secondary)] opacity-0 animate-fade-in-400">
